@@ -1,0 +1,198 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<time.h>
+bool BirlestiMi=false;
+struct ogrenci{
+	int okulno;
+	char *isim;
+	int vize;
+	int final;
+	double ortalama;
+	struct ogrenci *sol;
+	struct ogrenci *sag;
+};
+struct ogrenci* kok=NULL;
+struct ogrenci *yenidal(int okulno,char *isim,int vize,int final){
+	struct ogrenci* temp=(struct ogrenci*)malloc(sizeof(struct ogrenci));
+	temp->sag=NULL;
+	temp->sol=NULL;
+	temp->vize=vize;
+	temp->final=final;
+	temp->okulno=okulno;
+	temp->isim=isim;
+	temp->ortalama=temp->final*0.6+temp->vize*0.4;
+	if(kok==NULL){
+		kok=temp;
+	}
+	return temp;
+} 
+void sirala(struct ogrenci *kok){
+	if(kok!=NULL){
+		sirala(kok->sol);
+		if(kok->ortalama!=-1){
+			printf("%d\t%s\t%d\t%d\t%lf\n^^^^^\n",kok->okulno,kok->isim,kok->vize,kok->final,kok->ortalama);
+		}
+		sirala(kok->sag);
+	}
+}
+void terssirala(struct ogrenci *kok){
+	if(kok!=NULL){
+		terssirala(kok->sag);
+		if(kok->ortalama!=-1){
+			printf("%d\t%s\t%d\t%d\t%lf\n^^^^^\n",kok->okulno,kok->isim,kok->vize,kok->final,kok->ortalama);
+		}
+		terssirala(kok->sol);
+	}
+}
+bool VarMiAra(struct ogrenci* kok,char *aranan){
+	if(kok!=NULL){
+		VarMiAra(kok->sol,aranan);
+		if(strcmp(kok->isim,aranan) and kok->ortalama!=-1){
+			return true;
+		}
+		VarMiAra(kok->sag,aranan);
+	}
+}
+void Guncelle(struct ogrenci* kok,char  *aranan,char *yeniisim){
+	if(kok!=NULL){
+		Guncelle(kok->sag,aranan,yeniisim);
+		if(strcmp(aranan,kok->isim)==0){
+//			char yeniisim[15];
+//			printf("yeni isim giriniz\n");
+//			scanf("%s",yeniisim);
+			free(kok->isim);
+			kok->isim=strdup(yeniisim);
+			printf(" %s -> %s olarak degistirildi\n",aranan,yeniisim);	
+			return ;
+		}	
+		Guncelle(kok->sol,aranan,yeniisim);
+	}
+}
+void silerekguncelle(struct ogrenci* kok,char  *aranan){
+	if(kok!=NULL){
+		silerekguncelle(kok->sag,aranan);
+		if(strcmp(aranan,kok->isim)==0 and kok->ortalama!=-1){
+//			char yeniisim[15];
+//			printf("yeni isim giriniz\n");
+//			scanf("%s",yeniisim);
+			kok->ortalama=-1;
+			printf("%s silindi\n",kok->isim);
+			kok->isim=NULL;
+			return ;
+		}	
+		silerekguncelle(kok->sol,aranan);
+	}
+}
+struct ogrenci* ekle(struct ogrenci* kok, int okulno,char *isim,int vize,int final) {
+    if(kok == NULL) {
+        return yenidal(okulno,isim,vize,final);
+    }
+    double ortalama=vize*0.4+final*0.6;
+    if(ortalama > kok->ortalama){
+        kok->sag = ekle(kok->sag, okulno,isim,vize,final);
+    } else {
+        kok->sol = ekle(kok->sol,okulno,isim,vize,final);
+    }
+    return kok;
+}
+void ogrencilariOlustur(struct ogrenci** cift,struct ogrenci** tek,struct ogrenci** hepsi,char *format){
+	static int okul_no[15],vize[15],final[15];
+	static double ort[15];
+	static char isim[15][15];
+	static FILE* dosya;
+	
+	dosya=fopen("ogrenci.txt","r");
+	
+	int index=0;
+	while(fscanf(dosya,format,&okul_no[index],isim[index],&vize[index],&final[index])==4){
+		ort[index]=vize[index]*0.4+final[index]*0.6;
+		printf("%d\t%s\t%d\t%d\n",okul_no[index],isim[index],vize[index],final[index]);
+		if(okul_no[index]%2==0){
+			*cift=ekle(*cift,okul_no[index],isim[index],vize[index],final[index]);			
+		}else{
+			*tek=ekle(*tek,okul_no[index],isim[index],vize[index],final[index]);			
+		}
+		*hepsi=ekle(*hepsi,okul_no[index],isim[index],vize[index],final[index]);
+		index++;
+	}	
+}
+void listele(struct ogrenci* tek,struct ogrenci* cift,struct ogrenci *hepsi){
+	if(BirlestiMi){
+		printf("\nTum ogrenciler\n");
+		sirala(hepsi);
+		terssirala(hepsi);
+	}else{
+		printf("Tek sayililar\n");
+		sirala(tek);
+		terssirala(tek);
+		printf("\nCift sayililar\n");
+		sirala(cift);
+		terssirala(cift);
+	}
+}
+void guncelle(struct ogrenci* tek,struct ogrenci* cift,struct ogrenci *hepsi){
+	char isim[15];
+	printf("\n ogrenci isim giriniz\n");
+	scanf("%s",isim);
+	char newisim[15];
+	if(VarMiAra(tek,isim) or VarMiAra(cift,isim)){
+		char yeniisim[15];
+		printf("yeni isim giriniz\n");
+		scanf("%s",yeniisim);
+		
+		Guncelle(cift,isim,yeniisim);
+		Guncelle(tek,isim,yeniisim);
+		
+		Guncelle(hepsi,isim,yeniisim);
+	}else{
+		printf("ogrenci bulunamadi\n");
+	}
+	
+}
+int main(){
+	struct ogrenci* cift= NULL;	
+	struct ogrenci* tek= NULL;
+	struct ogrenci* hepsi= NULL;
+	int secim;
+	char format[]{"%d\t%s\t%d\t%d\n"};
+	char tempisim[15];
+	do{
+		
+		printf("Yapmak istediginis islemi rakam ile seciniz\n");
+		printf("ogrencilar olustur: 1\n");
+		printf("Listele: 2\n");
+		printf("Guncelle: 3\n");
+		printf("ogrencilari birlestir: 4\n");
+		printf("Kayit sil: 5\n");
+		printf("sonlandir: 0\n");
+		scanf("%d",&secim);
+		switch(secim){
+			case 1:
+				ogrencilariOlustur(&cift,&tek,&hepsi,format);
+				break;
+			case 2:
+				listele(tek,cift,hepsi);
+				break;	
+			case 3:
+				guncelle(tek,cift,hepsi);
+				break;
+			case 4:
+				BirlestiMi=true;
+				sirala(hepsi);
+				break;
+			case 5:
+				printf("\n ogrenci isim giriniz\n");
+				scanf("%s",tempisim);
+				if(VarMiAra(tek,tempisim) or VarMiAra(cift,tempisim)){
+					silerekguncelle(cift,tempisim);//-1 ile güncellenecek
+					silerekguncelle(tek,tempisim);
+					silerekguncelle(hepsi,tempisim);
+				}else{
+					printf("ogrenci bulunamadi\n");
+				}
+				break;
+			}		
+	}while(secim!=0);
+	printf("Uygulama sonlandirildi");
+}
